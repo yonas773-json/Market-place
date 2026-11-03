@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<style>
+  html, body {
+    margin: 0;
+    width: 1200px;
+    height: 630px;
+    overflow: hidden;
+    background: #F3F0E8;
+    color: #1A1A1A;
+  }
+  .stage {
+    position: relative;
+    width: 1200px;
+    height: 630px;
+    background:
+      radial-gradient(520px 320px at 12% 88%, rgba(217, 242, 200, 0.85), transparent 70%),
+      radial-gradient(480px 300px at 90% 8%, rgba(124, 92, 191, 0.16), transparent 68%),
+      #F3F0E8;
+  }
+  .brace {
+    position: absolute;
+    top: 40px;
+    font-family: "Liberation Serif", "DejaVu Serif", serif;
+    font-size: 460px;
+    line-height: 550px;
+    color: #7C5CBF;
+    opacity: 0.11;
+    user-select: none;
+  }
+  .brace.left { left: 28px; }
+  .brace.right { right: 28px; }
+  svg.graph {
+    position: absolute;
+    inset: 0;
+    width: 1200px;
+    height: 630px;
+  }
+  .lockup {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    width: 760px;
+  }
+  .mark {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 18px;
+    display: block;
+  }
+  .name {
+    margin: 0;
+    font-family: "Liberation Serif", "DejaVu Serif", serif;
+    font-weight: 400;
+    font-style: italic;
+    font-size: 92px;
+    line-height: 0.9;
+    letter-spacing: -0.03em;
+    color: #1A1A1A;
+  }
+  .connect {
+    margin: 10px 0 0;
+    font-family: "Liberation Sans", "DejaVu Sans", sans-serif;
+    font-weight: 700;
+    font-size: 58px;
+    line-height: 1;
+    letter-spacing: 0.2em;
+    padding-left: 0.2em;
+    color: #7C5CBF;
+  }
+  .rule {
+    width: 72px;
+    height: 3px;
+    margin: 22px auto 16px;
+    background: #1A1A1A;
+    border-radius: 2px;
+    opacity: 0.85;
+  }
+  .tag {
+    margin: 0;
+    font-family: "Liberation Sans", "DejaVu Sans", sans-serif;
+    font-weight: 400;
+    font-size: 22px;
+    letter-spacing: 0.01em;
+    color: #1A1A1A;
+    opacity: 0.78;
+  }
+  .card {
+    position: absolute;
+    width: 228px;
+    background: #FFFdf8;
+    border-radius: 18px;
+    box-shadow: 0 14px 40px rgba(26, 26, 26, 0.08);
+    padding: 16px 16px 14px;
+    box-sizing: border-box;
+  }
+  .card.left { left: 78px; top: 188px; }
+  .card.right { right: 78px; top: 214px; }
+  .chip {
+    display: inline-block;
+    font-family: "Liberation Sans", "DejaVu Sans", sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 4px 8px;
+    border-radius: 999px;
+    margin-bottom: 10px;
+  }
+  .chip.mint { background: #D9F2C8; color: #1A1A1A; }
+  .chip.purple { background: #7C5CBF; color: #F3F0E8; }
+  pre {
+    margin: 0;
+    font-family: "Liberation Mono", "DejaVu Sans Mono", monospace;
+    font-size: 15px;
+    line-height: 1.45;
+    color: #1A1A1A;
+  }
+  .key { color: #7C5CBF; }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="brace left">{</div>
+    <div class="brace right">}</div>
+    <svg class="graph" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M310 250 C 420 150, 500 150, 600 168" fill="none" stroke="#1A1A1A" stroke-width="2" opacity="0.28"/>
+      <path d="M890 300 C 800 150, 700 140, 600 168" fill="none" stroke="#1A1A1A" stroke-width="2" opacity="0.28"/>
+      <path d="M310 400 C 430 500, 520 510, 600 470" fill="none" stroke="#7C5CBF" stroke-width="2" opacity="0.45"/>
+      <path d="M890 430 C 790 520, 690 510, 600 470" fill="none" stroke="#7C5CBF" stroke-width="2" opacity="0.45"/>
+      <circle cx="600" cy="168" r="7" fill="#7C5CBF"/>
+      <circle cx="600" cy="470" r="7" fill="#D9F2C8" stroke="#1A1A1A" stroke-width="2"/>
+      <circle cx="310" cy="250" r="6" fill="#D9F2C8" stroke="#1A1A1A" stroke-width="1.5"/>
+      <circle cx="310" cy="400" r="6" fill="#7C5CBF"/>
+      <circle cx="890" cy="300" r="6" fill="#7C5CBF"/>
+      <circle cx="890" cy="430" r="6" fill="#D9F2C8" stroke="#1A1A1A" stroke-width="1.5"/>
+    </svg>
+
+    <div class="card left">
+      <div class="chip mint">source</div>
+      <pre>{
+  <span class="key">"id"</span>: "ada",
+  <span class="key">"ok"</span>: true
+}</pre>
+    </div>
+    <div class="card right">
+      <div class="chip purple">graph</div>
+      <pre>{
+  <span class="key">"edge"</span>: "live",
+  <span class="key">"n"</span>: 2
+}</pre>
+    </div>
+
+    <div class="lockup">
+      <svg class="mark" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect width="32" height="32" rx="8" fill="#7C5CBF"/>
+        <circle cx="9.5" cy="16" r="3.4" fill="#F3F0E8"/>
+        <circle cx="22.5" cy="10.2" r="3.1" fill="#D9F2C8"/>
+        <circle cx="22.5" cy="21.8" r="3.1" fill="#D9F2C8"/>
+        <path d="M12.7 14.8 L19.4 11.4 M12.7 17.2 L19.4 20.6" fill="none" stroke="#F3F0E8" stroke-width="2.2" stroke-linecap="round"/>
+      </svg>
+      <p class="name">Json</p>
+      <p class="connect">CONNECT</p>
+      <div class="rule"></div>
+      <p class="tag">Wire JSON into a living graph</p>
+    </div>
+  </div>
+</body>
+</html>

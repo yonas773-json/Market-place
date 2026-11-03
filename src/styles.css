@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", "Avenir Next", "Segoe UI", sans-serif;
+  --color-canvas: #f3f0e8;
+  --color-card: #ffffff;
+  --color-ink: #1a1a1a;
+  --color-muted: #6f6a62;
+  --color-line: #e7e2d8;
+  --color-primary: #7c5cbf;
+  --color-primary-ink: #ffffff;
+  --color-chip: #efece6;
+  --color-mint: #d9f2c8;
+  --color-blush: #f8d5e4;
+  --color-peach: #fde3cf;
+  --color-lilac: #e4d8fb;
+  --color-sky: #d4ebfb;
+  --color-butter: #f6efc3;
+  --radius-sheet: 1.75rem;
+}
+
+@layer base {
+  html { color-scheme: light; background: var(--color-canvas); }
+  html.dark {
+    color-scheme: dark;
+    --color-canvas: #12110e;
+    --color-card: #1c1a16;
+    --color-ink: #f6f3ec;
+    --color-muted: #b7b1a6;
+    --color-line: #2e2a24;
+    --color-primary: #c4b0f0;
+    --color-primary-ink: #1a1028;
+    --color-chip: #2a2722;
+    --color-mint: #243028;
+    --color-blush: #3a2430;
+    --color-peach: #3a2c22;
+    --color-lilac: #2c2640;
+    --color-sky: #1e2c38;
+    --color-butter: #33301c;
+  }
+  body { font-family: var(--font-sans); }
+  button:not(:disabled), [role="button"]:not(:disabled) { cursor: pointer; }
+  h1, h2, h3 { text-wrap: balance; }
+  p { text-wrap: pretty; }
+}
+
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
