@@ -7,8 +7,26 @@ export type DbSource = "neon" | "pglite";
 // "unset" — otherwise production would silently run on the PGLite fallback.
 const rawDatabaseUrl =
   typeof process !== "undefined" ? process.env.DATABASE_URL : undefined;
-const databaseUrl =
-  rawDatabaseUrl && rawDatabaseUrl.trim() ? rawDatabaseUrl : undefined;
+
+/**
+ * A deploy UI sometimes injects a template URL whose hostname is the literal
+ * word "host" (`postgres://…@host/db`). That name never resolves
+ * (`getaddrinfo ENOTFOUND host`) and would take down every page. Treat it as
+ * unset so the embedded PGLite database (with the same migrations) is used.
+ */
+function resolveDatabaseUrl(raw: string | undefined): string | undefined {
+  const value = raw?.trim();
+  if (!value) return undefined;
+  try {
+    const host = new URL(value).hostname.replace(/^\[|\]$/g, "").toLowerCase();
+    if (host === "host") return undefined;
+  } catch {
+    // Not a URL this runtime can parse — let the driver try the raw string.
+  }
+  return value;
+}
+
+const databaseUrl = resolveDatabaseUrl(rawDatabaseUrl);
 
 /**
  * Active backend: real **Neon** when `DATABASE_URL` is set (deployed / configured
@@ -17,6 +35,11 @@ const databaseUrl =
  * included. Swap in Neon later by just setting `DATABASE_URL`; no code changes.
  */
 export const dbSource: DbSource = databaseUrl ? "neon" : "pglite";
+
+/** Connection string actually used. Undefined when unset or a placeholder host. */
+export function activeDatabaseUrl(): string | undefined {
+  return databaseUrl;
+}
 
 /**
  * Minimal shared SQL surface, satisfied by both Neon and PGLite. Both the

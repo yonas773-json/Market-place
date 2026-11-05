@@ -18,8 +18,15 @@ import { dirname, join } from "node:path";
 import pg from "pg";
 import { pendingMigrations } from "./migration-plan.mjs";
 
-const databaseUrl = process.env.DATABASE_URL;
-if (!databaseUrl) {
+const databaseUrl = process.env.DATABASE_URL?.trim();
+function placeholderHost(url) {
+  try {
+    return new URL(url).hostname.replace(/^\[|\]$/g, "").toLowerCase() === "host";
+  } catch {
+    return false;
+  }
+}
+if (!databaseUrl || placeholderHost(databaseUrl)) {
   console.log(
     "[migrate] DATABASE_URL not set — skipping (the PGLite fallback migrates itself).",
   );
