@@ -178,6 +178,9 @@ export default defineConfig(({ command, isPreview }) => ({
             // PGLite loads wasm/data via filesystem paths. Trace the whole
             // package so those files exist inside the Vercel function.
             traceDeps: ["@electric-sql/pglite*"],
+            vercel: {
+              functions: { maxDuration: 60, memory: 1024 },
+            },
           }),
         ]
       : []),
