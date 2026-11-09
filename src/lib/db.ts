@@ -1,3 +1,6 @@
+import { createRequire } from "node:module";
+import { readFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import { pendingMigrations } from "../../scripts/migration-plan.mjs";
 
 /** Which database backend is active. */
@@ -128,13 +131,42 @@ function createNeonSql(): Promise<Sql> {
   return globalRef.__pgSqlPromise__;
 }
 
+async function pgliteRuntimeOptions(): Promise<{
+  fsBundle?: Blob;
+  pgliteWasmModule?: WebAssembly.Module;
+  initdbWasmModule?: WebAssembly.Module;
+}> {
+  // On Vercel the bundled server looks for these next to the chunk
+  // (`/var/task/_libs/pglite.data`) and they are not there. Load them from the
+  // real package, which Nitro traces into the function.
+  try {
+    const require = createRequire(import.meta.url);
+    const dir = dirname(require.resolve("@electric-sql/pglite"));
+    const [data, wasm, initdb] = await Promise.all([
+      readFile(join(dir, "pglite.data")),
+      readFile(join(dir, "pglite.wasm")),
+      readFile(join(dir, "initdb.wasm")),
+    ]);
+    return {
+      fsBundle: new Blob([data]),
+      pgliteWasmModule: await WebAssembly.compile(wasm),
+      initdbWasmModule: await WebAssembly.compile(initdb),
+    };
+  } catch (err) {
+    console.error("[db] could not preload PGLite assets from the package:", err);
+    return {};
+  }
+}
+
 async function createPgliteSql(): Promise<Sql> {
   // Embedded Postgres, imported on demand so it never loads on the Neon path.
   // One in-memory instance per process, shared across HMR module instances, so
   // data survives source edits (it resets on dev-server restart).
   globalRef.__pgliteInstance__ ??= (async () => {
     const { PGlite } = await import("@electric-sql/pglite");
+    const assets = await pgliteRuntimeOptions();
     const pg = new PGlite({
+      ...assets,
       parsers: {
         [OID_INT8]: Number,
         [OID_DATE]: identity,
