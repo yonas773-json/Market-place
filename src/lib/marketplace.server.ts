@@ -1089,12 +1089,52 @@ export async function adminOverview(userId: string) {
     id: number;
     name: string;
     city: string;
+    area: string;
+    phone: string;
+    hours: string;
+    about: string;
+    category_slug: string;
     verified: boolean;
     suspended: boolean;
     plan: string;
     owner_user_id: string | null;
   }>`
-    select id, name, city, verified, suspended, plan, owner_user_id from businesses order by verified, id desc limit 40
+    select id, name, city, area, phone, hours, about, category_slug, verified, suspended, plan, owner_user_id
+    from businesses order by id desc limit 40
+  `;
+  const listingRows = await sql<{
+    id: number;
+    title: string;
+    blurb: string;
+    description: string;
+    price: number;
+    compare_at: number | null;
+    kind: string;
+    active: boolean;
+    featured: boolean;
+    image: string;
+    business_id: number;
+    category_slug: string;
+    stock: number | null;
+  }>`
+    select id, title, blurb, description, price, compare_at, kind, active, featured, image, business_id, category_slug, stock
+    from services order by id desc limit 40
+  `;
+  const orderRows = await sql<{
+    id: number;
+    status: string;
+    subtotal: number;
+    payment_status: string;
+    payment_method: string;
+    city: string;
+    customer_name: string;
+    business_name: string;
+    summary: string | null;
+  }>`
+    select o.id, o.status, o.subtotal, o.payment_status, o.payment_method, o.city, o.customer_name, b.name as business_name,
+      (select string_agg(i.title, ', ') from order_items i where i.order_id = o.id) as summary
+    from orders o join businesses b on b.id = o.business_id
+    order by o.id desc limit 30
   `;
   const people = await sql<{
     user_id: string;
@@ -1130,10 +1170,42 @@ export async function adminOverview(userId: string) {
       id: n(b.id),
       name: b.name,
       city: b.city,
+      area: b.area,
+      phone: b.phone,
+      hours: b.hours,
+      about: b.about,
+      categorySlug: b.category_slug,
       verified: Boolean(b.verified),
       suspended: Boolean(b.suspended),
       plan: b.plan,
+      ownerUserId: b.owner_user_id ?? "",
       owned: Boolean(b.owner_user_id),
+    })),
+    listings: listingRows.map((s) => ({
+      id: n(s.id),
+      title: s.title,
+      blurb: s.blurb,
+      description: s.description,
+      price: n(s.price),
+      compareAt: s.compare_at == null ? 0 : n(s.compare_at),
+      kind: s.kind === "product" ? "product" as const : "service" as const,
+      active: Boolean(s.active),
+      featured: Boolean(s.featured),
+      image: s.image || "/media/quick.jpg",
+      businessId: n(s.business_id),
+      categorySlug: s.category_slug,
+      stock: s.stock == null ? 0 : n(s.stock),
+    })),
+    orderRows: orderRows.map((o) => ({
+      id: n(o.id),
+      status: o.status,
+      total: n(o.subtotal),
+      paymentStatus: o.payment_status,
+      paymentMethod: o.payment_method,
+      city: o.city,
+      customerName: o.customer_name,
+      businessName: o.business_name,
+      summary: o.summary ?? "",
     })),
     people: people.map((p) => ({
       id: p.user_id,
@@ -1213,5 +1285,227 @@ export async function adminCloseReport(userId: string, id: number) {
   if (!me?.is_admin) throw new Error("Admin only.");
   const sql = await db();
   await sql`update reports set status = 'closed' where id = ${id}`;
+  return { ok: true };
+}
+
+async function requireAdmin(userId: string) {
+  const me = await profileRow(userId);
+  if (!me?.is_admin) throw new Error("Admin only.");
+  return me;
+}
+
+export async function adminCreateAccount(
+  userId: string,
+  input: { name: string; email: string; password: string; role: "customer" | "seller" | "admin" },
+) {
+  await requireAdmin(userId);
+  const name = clip(input.name, 80);
+  const email = input.email.trim().toLowerCase();
+  if (name.length < 2) throw new Error("Add a name.");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 120) throw new Error("Enter a real email.");
+  if (input.password.length < 8 || input.password.length > 72) throw new Error("Password needs 8 to 72 characters.");
+  const sql = await db();
+  const taken = await sql`select id from "user" where lower(email) = ${email}`;
+  if (taken.length) throw new Error("That email already has an account.");
+  const { hashPassword } = await import("better-auth/crypto");
+  const hash = await hashPassword(input.password);
+  const id = crypto.randomUUID();
+  const accountId = crypto.randomUUID();
+  const role = input.role === "admin" || input.role === "seller" ? input.role : "customer";
+  await sql`
+    insert into "user" (id, name, email, "emailVerified", "createdAt", "updatedAt")
+    values (${id}, ${name}, ${email}, true, now(), now())
+  `;
+  await sql`
+    insert into account (id, "accountId", "providerId", "userId", password, "createdAt", "updatedAt")
+    values (${accountId}, ${id}, 'credential', ${id}, ${hash}, now(), now())
+  `;
+  await sql`
+    insert into profiles (user_id, display_name, is_admin, is_business)
+    values (${id}, ${name}, ${role === "admin"}, ${role === "seller" || role === "admin"})
+  `;
+  await log(userId, "account", `${email} ${role}`);
+  return { ok: true, email };
+}
+
+export async function adminSaveBusiness(
+  userId: string,
+  input: {
+    id: number;
+    name: string;
+    categorySlug: string;
+    city: string;
+    area: string;
+    phone: string;
+    hours: string;
+    about: string;
+    plan: string;
+    verified: boolean;
+    ownerUserId: string;
+  },
+) {
+  await requireAdmin(userId);
+  const name = clip(input.name, 80);
+  if (name.length < 2) throw new Error("Name the shop.");
+  const sql = await db();
+  const cat = await sql`select slug from categories where slug = ${input.categorySlug}`;
+  if (!cat.length) throw new Error("Pick a category.");
+  const plan = input.plan === "growth" || input.plan === "featured" ? input.plan : "free";
+  const owner = input.ownerUserId.trim();
+  if (owner) {
+    const who = await sql`select user_id from profiles where user_id = ${owner}`;
+    if (!who.length) throw new Error("Pick an account that already exists.");
+  }
+  const fields = {
+    name,
+    category: input.categorySlug,
+    city: clip(input.city, 40) || "Addis Ababa",
+    area: clip(input.area, 40),
+    phone: clip(input.phone, 30),
+    hours: clip(input.hours, 40),
+    about: clip(input.about, 400),
+    plan,
+    verified: Boolean(input.verified),
+    owner: owner || null,
+  };
+  if (input.id) {
+    const updated = await sql`
+      update businesses set
+        name = ${fields.name},
+        category_slug = ${fields.category},
+        city = ${fields.city},
+        area = ${fields.area},
+        phone = ${fields.phone},
+        hours = ${fields.hours},
+        about = ${fields.about},
+        plan = ${fields.plan},
+        verified = ${fields.verified},
+        owner_user_id = ${fields.owner}
+      where id = ${input.id}
+      returning id
+    `;
+    if (!updated.length) throw new Error("Shop not found.");
+  } else {
+    let slug = slugify(name);
+    const clash = await sql`select id from businesses where slug = ${slug}`;
+    if (clash.length) slug = `${slug}-${Date.now().toString(36)}`;
+    await sql`
+      insert into businesses (owner_user_id, name, slug, category_slug, city, area, phone, hours, about, verified, plan)
+      values (
+        ${fields.owner}, ${fields.name}, ${slug}, ${fields.category}, ${fields.city},
+        ${fields.area}, ${fields.phone}, ${fields.hours}, ${fields.about}, ${fields.verified}, ${fields.plan}
+      )
+    `;
+  }
+  if (owner) await sql`update profiles set is_business = true where user_id = ${owner}`;
+  await log(userId, "shop", name);
+  return { ok: true };
+}
+
+export async function adminSaveListing(
+  userId: string,
+  input: {
+    id: number;
+    businessId: number;
+    title: string;
+    blurb: string;
+    description: string;
+    price: number;
+    compareAt: number;
+    kind: "service" | "product";
+    categorySlug: string;
+    stock: number;
+    active: boolean;
+    featured: boolean;
+    image: string;
+  },
+) {
+  await requireAdmin(userId);
+  const title = clip(input.title, 80);
+  if (title.length < 2) throw new Error("Add a title.");
+  if (!Number.isInteger(input.price) || input.price < 1 || input.price > 5_000_000) throw new Error("Set a price in birr.");
+  const sql = await db();
+  const shop = await sql<{ category_slug: string }>`select category_slug from businesses where id = ${input.businessId}`;
+  if (!shop.length) throw new Error("Pick a shop.");
+  const cat = await sql`select slug from categories where slug = ${input.categorySlug}`;
+  const category = cat.length ? input.categorySlug : shop[0].category_slug;
+  const kind = input.kind === "product" ? "product" : "service";
+  const stock = kind === "product" ? Math.max(0, Math.min(100000, input.stock || 0)) : null;
+  const image = cleanImage(input.image || "/media/quick.jpg");
+  const compare = input.compareAt > input.price ? input.compareAt : null;
+  if (input.id) {
+    const updated = await sql`
+      update services set
+        business_id = ${input.businessId},
+        title = ${title},
+        blurb = ${clip(input.blurb, 140)},
+        description = ${clip(input.description, 800)},
+        price = ${input.price},
+        compare_at = ${compare},
+        kind = ${kind},
+        category_slug = ${category},
+        stock = ${stock},
+        active = ${Boolean(input.active)},
+        featured = ${Boolean(input.featured)},
+        image = ${image},
+        hero_image = ${image}
+      where id = ${input.id}
+      returning id
+    `;
+    if (!updated.length) throw new Error("Listing not found.");
+  } else {
+    await sql`
+      insert into services (business_id, category_slug, kind, title, blurb, description, price, compare_at, stock, active, featured, image, hero_image)
+      values (
+        ${input.businessId}, ${category}, ${kind}, ${title}, ${clip(input.blurb, 140)}, ${clip(input.description, 800)},
+        ${input.price}, ${compare}, ${stock}, ${Boolean(input.active)}, ${Boolean(input.featured)}, ${image}, ${image}
+      )
+    `;
+  }
+  await log(userId, "listing", title);
+  return { ok: true };
+}
+
+export async function adminRemoveListing(userId: string, id: number) {
+  await requireAdmin(userId);
+  const sql = await db();
+  const row = await sql<{ title: string }>`select title from services where id = ${id}`;
+  if (!row.length) throw new Error("Listing not found.");
+  await sql`delete from favorites where service_id = ${id}`;
+  await sql`delete from reviews where service_id = ${id}`;
+  await sql`delete from staff where service_id = ${id}`;
+  await sql`delete from services where id = ${id}`;
+  await log(userId, "listing", `removed ${row[0].title}`);
+  return { ok: true };
+}
+
+export async function adminResetPassword(userId: string, target: string, password: string) {
+  await requireAdmin(userId);
+  if (password.length < 8 || password.length > 72) throw new Error("Password needs 8 to 72 characters.");
+  const sql = await db();
+  const who = await sql<{ email: string }>`select email from "user" where id = ${target}`;
+  if (!who.length) throw new Error("Account not found.");
+  const { hashPassword } = await import("better-auth/crypto");
+  const hash = await hashPassword(password);
+  const existing = await sql`select id from account where "userId" = ${target} and "providerId" = 'credential'`;
+  if (existing.length) {
+    await sql`update account set password = ${hash}, "updatedAt" = now() where "userId" = ${target} and "providerId" = 'credential'`;
+  } else {
+    await sql`
+      insert into account (id, "accountId", "providerId", "userId", password, "createdAt", "updatedAt")
+      values (${crypto.randomUUID()}, ${target}, 'credential', ${target}, ${hash}, now(), now())
+    `;
+  }
+  await log(userId, "password", who[0].email);
+  return { ok: true };
+}
+
+export async function adminSetPayment(userId: string, id: number, paid: boolean) {
+  await requireAdmin(userId);
+  const sql = await db();
+  const status = paid ? "paid" : "unpaid";
+  const updated = await sql`update orders set payment_status = ${status} where id = ${id} returning id`;
+  if (!updated.length) throw new Error("Order not found.");
+  await log(userId, "payment", `#${id} ${status}`);
   return { ok: true };
 }

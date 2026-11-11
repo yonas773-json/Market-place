@@ -219,6 +219,18 @@ const en = {
   admin: "Admin",
   owned: "Member shop",
   catalog: "Catalog",
+  accountReady: "Account saved. They can sign in with this email and password.",
+  noOwner: "No owner",
+  published: "Live",
+  hidden: "Hidden",
+  pickShop: "Shop",
+  newRecord: "New",
+  resetPassword: "New password",
+  remove: "Remove",
+  markPaid: "Mark paid",
+  paid: "Paid",
+  unpaid: "Unpaid",
+  passwordSet: "Password updated.",
 };
 
 const am: { [K in keyof typeof en]: string } = {
@@ -440,6 +452,12 @@ const am: { [K in keyof typeof en]: string } = {
   admin: "አስተዳዳሪ",
   owned: "የአባል ሱቅ",
   catalog: "ካታሎግ",
+  accountReady: "መለያ ተቀምጧል። በዚህ ኢሜይልና የይለፍ ቃል መግባት ይችላሉ።",
+  noOwner: "ባለቤት የለም",
+  published: "የቀረበ",
+  hidden: "የተደበቀ",
+  pickShop: "ሱቅ",
+  newRecord: "አዲስ",
 };
 
 export type Copy = typeof en;

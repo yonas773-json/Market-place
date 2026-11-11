@@ -1,0 +1,1 @@
+import{ft as e,i as t}from"./shell-DDO8OeeA.js";import{n}from"./login-panel-DrQ_A0y0.js";var r=e();function i(){return(0,r.jsx)(t,{children:(0,r.jsx)(`div`,{className:`px-5 py-8`,children:(0,r.jsx)(n,{})})})}export{i as component};

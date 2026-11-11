@@ -255,3 +255,93 @@ export const adminCloseReport = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((data: { id: number }) => ({ id: Number(data.id) }))
   .handler(async ({ data, context }) => (await api()).adminCloseReport(context.userId, data.id));
+
+export const adminCreateAccount = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((data: { name: string; email: string; password: string; role: string }) => ({
+    name: String(data.name ?? "").slice(0, 80),
+    email: String(data.email ?? "").slice(0, 120),
+    password: String(data.password ?? "").slice(0, 72),
+    role: (data.role === "seller" || data.role === "admin" ? data.role : "customer") as "customer" | "seller" | "admin",
+  }))
+  .handler(async ({ data, context }) => (await api()).adminCreateAccount(context.userId, data));
+
+export const adminSaveBusiness = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((data: {
+    id: number;
+    name: string;
+    categorySlug: string;
+    city: string;
+    area: string;
+    phone: string;
+    hours: string;
+    about: string;
+    plan: string;
+    verified: boolean;
+    ownerUserId: string;
+  }) => ({
+    id: Number(data.id) || 0,
+    name: String(data.name ?? ""),
+    categorySlug: String(data.categorySlug ?? ""),
+    city: String(data.city ?? ""),
+    area: String(data.area ?? ""),
+    phone: String(data.phone ?? ""),
+    hours: String(data.hours ?? ""),
+    about: String(data.about ?? ""),
+    plan: String(data.plan ?? "free"),
+    verified: Boolean(data.verified),
+    ownerUserId: String(data.ownerUserId ?? ""),
+  }))
+  .handler(async ({ data, context }) => (await api()).adminSaveBusiness(context.userId, data));
+
+export const adminSaveListing = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((data: {
+    id: number;
+    businessId: number;
+    title: string;
+    blurb: string;
+    description: string;
+    price: number;
+    compareAt: number;
+    kind: string;
+    categorySlug: string;
+    stock: number;
+    active: boolean;
+    featured: boolean;
+    image: string;
+  }) => ({
+    id: Number(data.id) || 0,
+    businessId: Number(data.businessId) || 0,
+    title: String(data.title ?? ""),
+    blurb: String(data.blurb ?? ""),
+    description: String(data.description ?? ""),
+    price: Math.round(Number(data.price) || 0),
+    compareAt: Math.round(Number(data.compareAt) || 0),
+    kind: (data.kind === "product" ? "product" : "service") as "service" | "product",
+    categorySlug: String(data.categorySlug ?? ""),
+    stock: Math.round(Number(data.stock) || 0),
+    active: data.active !== false,
+    featured: Boolean(data.featured),
+    image: String(data.image ?? ""),
+  }))
+  .handler(async ({ data, context }) => (await api()).adminSaveListing(context.userId, data));
+
+export const adminRemoveListing = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((data: { id: number }) => ({ id: Number(data.id) }))
+  .handler(async ({ data, context }) => (await api()).adminRemoveListing(context.userId, data.id));
+
+export const adminResetPassword = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((data: { target: string; password: string }) => ({
+    target: String(data.target ?? ""),
+    password: String(data.password ?? "").slice(0, 72),
+  }))
+  .handler(async ({ data, context }) => (await api()).adminResetPassword(context.userId, data.target, data.password));
+
+export const adminSetPayment = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((data: { id: number; paid: boolean }) => ({ id: Number(data.id), paid: Boolean(data.paid) }))
+  .handler(async ({ data, context }) => (await api()).adminSetPayment(context.userId, data.id, data.paid));
