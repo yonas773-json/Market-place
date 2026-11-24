@@ -56,10 +56,10 @@ function Home() {
           </div>
         ) : null}
         <div>
-          <p className="text-xs font-bold tracking-wide text-primary">{t.platform}</p>
-          <h1 className="mt-1 text-5xl font-extrabold leading-none tracking-tight">{t.headlineA}<br />{t.headlineB}</h1>
+          <p className="text-sm text-muted">{city || "Addis Ababa"}</p>
+          <h1 className="mt-1 max-w-xs font-display text-[1.85rem] font-semibold leading-[1.15]">{t.headlineA} {t.headlineB}</h1>
         </div>
-        <form action="/search" className="flex h-12 items-center gap-2 rounded-full bg-chip px-4">
+        <form action="/search" className="flex h-12 items-center gap-2 rounded-xl border border-line bg-card px-3.5">
           <Search className="size-5 text-muted" />
           <input name="q" placeholder={t.search} className="w-full bg-transparent text-sm outline-none" />
         </form>

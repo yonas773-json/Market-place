@@ -11,11 +11,11 @@ export const Route = createRootRoute({
       { name: "viewport", content: "width=device-width, initial-scale-1" },
       { title: "JsonCONNECT" },
       { name: "description", content: "JsonCONNECT connects Ethiopian small businesses with customers. Shop, book, and sell in birr." },
-      { name: "theme-color", content: "#F3F0E8" },
+      { name: "theme-color", content: "#F7F3EB" },
     ],
     links: [
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" },
+      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Abyssinica+SIL&family=Noto+Sans+Ethiopic:wght@400;600;700&family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&display=swap" },
       { rel: "stylesheet", href: appCss },
       { rel: "manifest", href: "/__grok/manifest.webmanifest" },
       { rel: "apple-touch-icon", href: "/__grok/icon-180.png" },

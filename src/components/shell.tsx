@@ -3,7 +3,6 @@ import {
   CalendarDays,
   ChevronLeft,
   ChevronRight,
-  Clock,
   Home,
   MapPin,
   MessagesSquare,
@@ -77,6 +76,7 @@ export function Providers({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!ready) return;
     document.documentElement.classList.toggle("dark", theme === "dark");
+    document.documentElement.lang = lang === "am" ? "am" : "en";
     localStorage.setItem("jc-theme", theme);
     localStorage.setItem("jc-lang", lang);
     localStorage.setItem("jc-cart", JSON.stringify(lines));
@@ -136,8 +136,8 @@ export const tintBg: Record<string, string> = {
   butter: "bg-butter",
 };
 
-const chipOn = "inline-flex h-10 shrink-0 items-center rounded-full bg-ink px-4 text-sm font-semibold text-card";
-const chipOff = "inline-flex h-10 shrink-0 items-center rounded-full bg-chip px-4 text-sm font-semibold text-ink";
+const chipOn = "inline-flex h-9 shrink-0 items-center rounded-lg bg-ink px-3 text-sm font-medium text-card";
+const chipOff = "inline-flex h-9 shrink-0 items-center rounded-lg bg-card px-3 text-sm font-medium text-ink ring-1 ring-line";
 
 export function Chips({ categories, active, city }: { categories: Category[]; active: string; city: string }) {
   const { lang, t } = useApp();
@@ -158,7 +158,7 @@ export function CartButton() {
   return (
     <Link to="/cart" aria-label="Cart" className="relative grid size-11 place-items-center rounded-full bg-card text-ink shadow-sm">
       <ShoppingCart className="size-5" />
-      {count > 0 ? <span className="absolute -right-0.5 -top-0.5 grid size-5 place-items-center rounded-full bg-primary text-xs font-bold text-primary-ink">{count}</span> : null}
+      {count > 0 ? <span className="absolute -right-0.5 -top-0.5 grid size-5 place-items-center rounded-full bg-gold text-[10px] font-bold text-ink">{count}</span> : null}
     </Link>
   );
 }
@@ -182,7 +182,7 @@ export function Stars({ tenths, count }: { tenths: number; count: number }) {
   return (
     <span className="inline-flex items-center gap-1 text-xs font-semibold text-ink">
       {Array.from({ length: 5 }, (_, i) => (
-        <Star key={i} className={i < full ? "size-3.5 fill-primary text-primary" : "size-3.5 text-line"} />
+        <Star key={i} className={i < full ? "size-3.5 fill-gold text-gold" : "size-3.5 text-line"} />
       ))}
       <span className="text-muted">{(tenths / 10).toFixed(1)}</span>
     </span>
@@ -192,23 +192,16 @@ export function Stars({ tenths, count }: { tenths: number; count: number }) {
 export function HeroCard({ item }: { item: ServiceCard }) {
   const { lang, t } = useApp();
   return (
-    <Link to="/s/$id" params={{ id: String(item.id) }} className={`relative block min-h-80 overflow-hidden rounded-sheet p-4 ${tintBg[item.tint] || "bg-mint"}`}>
-      {item.image ? <img src={item.image} alt="" className="pointer-events-none absolute bottom-0 right-0 h-72 w-44 object-cover object-top" /> : null}
-      <div className="relative flex items-center gap-2">
-        {item.support ? (
-          <span className="inline-flex items-center gap-1 rounded-full bg-card px-3 py-1 text-xs font-semibold text-ink">
-            <Clock className="size-3.5" /> {item.support}
-          </span>
-        ) : <span />}
-        {item.badge ? <span className="ml-auto rounded-full bg-card px-3 py-1 text-sm font-bold text-ink">{item.badge}</span> : null}
+    <Link to="/s/$id" params={{ id: String(item.id) }} className="relative block min-h-72 overflow-hidden rounded-2xl bg-ink text-card">
+      {item.image ? <img src={item.image} alt="" className="absolute inset-0 h-full w-full object-cover" /> : null}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/10" />
+      <div className="relative flex min-h-72 flex-col justify-end p-4">
+        <p className="text-sm text-white/80">{item.businessName}{item.city ? ` · ${item.city}` : ""}</p>
+        <h2 className="mt-1 max-w-[16rem] font-display text-[1.7rem] font-semibold leading-tight text-white">{label(lang, item)}</h2>
+        <span className="mt-3 inline-flex w-fit items-center gap-2 rounded-lg bg-card px-3 py-2 text-sm font-semibold text-ink">
+          {t.bookNow} · <span className="text-gold">{money(item.price, lang)}</span>
+        </span>
       </div>
-      <p className="relative mt-6 flex items-center gap-1.5 text-sm font-medium text-ink">
-        <Sprout className="size-4" /> {item.perk || line(lang, item)}
-      </p>
-      <h2 className="relative mt-1 max-w-40 text-3xl font-extrabold leading-none tracking-tight text-ink">{label(lang, item)}</h2>
-      <span className="relative mt-8 inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2.5 text-sm font-semibold text-card">
-        <ShoppingCart className="size-4" /> {t.bookNow}
-      </span>
     </Link>
   );
 }
@@ -235,13 +228,13 @@ export function SpotlightCard({ item }: { item: ServiceCard }) {
 export function ListingRow({ item }: { item: ServiceCard }) {
   const { lang } = useApp();
   return (
-    <Link to="/s/$id" params={{ id: String(item.id) }} className={`flex items-center gap-3 rounded-sheet p-3 ${tintBg[item.tint] || "bg-chip"}`}>
-      {item.image ? <img src={item.image} alt="" className="size-16 shrink-0 rounded-2xl object-cover" /> : <span className="size-16 shrink-0 rounded-2xl bg-card" />}
+    <Link to="/s/$id" params={{ id: String(item.id) }} className="flex items-center gap-3 rounded-xl border border-line bg-card p-2.5">
+      {item.image ? <img src={item.image} alt="" className="size-16 shrink-0 rounded-lg object-cover" /> : <span className="size-16 shrink-0 rounded-lg bg-chip" />}
       <span className="min-w-0 flex-1">
-        <span className="block truncate font-bold text-ink">{label(lang, item)}</span>
-        <span className="mt-0.5 block text-sm text-ink/80">{line(lang, item)}</span>
+        <span className="block truncate font-semibold text-ink">{label(lang, item)}</span>
+        <span className="mt-0.5 block truncate text-sm text-muted">{item.businessName}</span>
       </span>
-      <span className="grid size-9 shrink-0 place-items-center rounded-full bg-card text-ink"><ChevronRight className="size-4" /></span>
+      <span className="shrink-0 text-sm font-semibold tabular-nums text-gold">{money(item.price, lang)}</span>
     </Link>
   );
 }
@@ -249,12 +242,12 @@ export function ListingRow({ item }: { item: ServiceCard }) {
 export function ShopPill({ shop }: { shop: ShopCard }) {
   const { t } = useApp();
   return (
-    <Link to="/c/$slug" params={{ slug: "all" }} search={{ q: shop.name, city: "", max: 0, stars: 0, sort: "popular" }} className="flex w-40 shrink-0 flex-col gap-2 rounded-sheet bg-card p-3 shadow-sm">
+    <Link to="/c/$slug" params={{ slug: "all" }} search={{ q: shop.name, city: "", max: 0, stars: 0, sort: "popular" }} className="flex w-36 shrink-0 flex-col gap-2 rounded-xl border border-line bg-card p-2">
       {shop.logo ? <img src={shop.logo} alt="" className="h-20 w-full rounded-2xl object-cover" /> : <span className="h-20 rounded-2xl bg-chip" />}
       <span className="truncate text-sm font-bold">{shop.name}</span>
       <span className="flex items-center gap-1 text-xs text-muted">
         <MapPin className="size-3" /> {shop.area || shop.city}
-        {shop.verified ? <ShieldCheck className="size-3 text-primary" aria-label={t.verified} /> : null}
+        {shop.verified ? <ShieldCheck className="size-3 text-gold" aria-label={t.verified} /> : null}
       </span>
     </Link>
   );
@@ -270,10 +263,11 @@ function TabBar() {
     { to: "/me", icon: UserRound, label: t.you, on: path.startsWith("/me") },
   ] as const;
   return (
-    <nav className="mx-4 mb-4 flex items-center justify-between rounded-full border border-line bg-card px-2 py-2 shadow-lg">
+    <nav className="border-t border-line bg-card/95 px-2 py-1.5 backdrop-blur">
       {tabs.map((tab) => (
-        <Link key={tab.to} to={tab.to} aria-label={tab.label} className={tab.on ? "grid size-12 place-items-center rounded-full bg-primary text-primary-ink" : "grid size-12 place-items-center text-muted"}>
+        <Link key={tab.to} to={tab.to} className={tab.on ? "flex flex-1 flex-col items-center gap-0.5 border-t-2 border-gold py-1 text-[11px] font-semibold text-ink" : "flex flex-1 flex-col items-center gap-0.5 border-t-2 border-transparent py-1 text-[11px] text-muted"}>
           <tab.icon className="size-5" />
+          {tab.label}
         </Link>
       ))}
     </nav>
@@ -286,6 +280,7 @@ export function Frame({ children, dock }: { children: ReactNode; dock?: ReactNod
     <div className="min-h-dvh bg-canvas text-ink">
       <div className="mx-auto grid min-h-dvh w-full max-w-6xl md:grid-cols-[28rem_minmax(0,1fr)]">
         <div className="flex min-h-dvh min-w-0 flex-col md:border-r md:border-line">
+          <div className="tibeb" aria-hidden="true" />
           <div className="flex-1">{children}</div>
           {flash ? <p className="mx-5 mb-2 rounded-full bg-ink px-4 py-2 text-center text-sm font-semibold text-card">{flash}</p> : null}
           {compare.length > 0 ? (
@@ -297,13 +292,13 @@ export function Frame({ children, dock }: { children: ReactNode; dock?: ReactNod
           <div className="sticky bottom-0 z-20">{dock ?? <TabBar />}</div>
         </div>
         <aside className="hidden px-8 py-10 md:block">
-          <p className="text-sm font-bold tracking-wide text-primary">{t.platform}</p>
-          <h2 className="mt-3 max-w-sm text-4xl font-extrabold leading-none tracking-tight">{t.headlineA} {t.headlineB}</h2>
+          <p className="text-sm text-muted">{t.platform}</p>
+          <h2 className="mt-2 max-w-sm font-display text-4xl font-semibold leading-tight">{t.headlineA} {t.headlineB}</h2>
           <p className="mt-4 max-w-sm text-muted">{t.how1}</p>
           <ol className="mt-8 space-y-4">
             {[t.how1, t.how2, t.how3].map((step, i) => (
               <li key={step} className="flex gap-3">
-                <span className="grid size-8 shrink-0 place-items-center rounded-full bg-primary text-sm font-bold text-primary-ink">{i + 1}</span>
+                <span className="grid size-8 shrink-0 place-items-center rounded-md border border-line text-sm font-semibold">{i + 1}</span>
                 <span className="pt-1 text-sm">{step}</span>
               </li>
             ))}
@@ -337,9 +332,9 @@ export function Field({ label: name, children }: { label: string; children: Reac
   );
 }
 
-export const inputClass = "h-12 w-full rounded-full bg-chip px-4 text-sm text-ink outline-none ring-primary focus:ring-2";
-export const btnClass = "h-12 w-full rounded-full bg-primary text-sm font-bold text-primary-ink disabled:opacity-60";
-export const ghostClass = "h-12 w-full rounded-full bg-ink text-sm font-bold text-card";
+export const inputClass = "h-12 w-full rounded-lg border border-line bg-card px-3.5 text-sm text-ink outline-none ring-ink focus:ring-2";
+export const btnClass = "h-12 w-full rounded-lg bg-primary text-sm font-semibold text-primary-ink disabled:opacity-60";
+export const ghostClass = "h-12 w-full rounded-lg border border-line bg-card text-sm font-semibold text-ink";
 
 export function moneyOf(amount: number) {
   return money(amount, useApp().lang);

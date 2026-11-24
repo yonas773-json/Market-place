@@ -6,20 +6,27 @@ import {
   adminCloseReport,
   adminCreateAccount,
   adminOverview,
+  adminRemoveListing,
+  adminResetPassword,
   adminSaveBusiness,
   adminSaveListing,
   adminSaveSettings,
   adminSetBusiness,
+  adminSetPayment,
   adminSetUser,
+  setOrderStatus,
 } from "@/lib/marketplace.functions";
 import { money } from "@/lib/i18n";
 import { AuthWall } from "@/components/login-panel";
-import { btnClass, Field, Frame, inputClass, TitleBar, useApp } from "@/components/shell";
+import { btnClass, Field, Frame, inputClass, statusText, TitleBar, useApp } from "@/components/shell";
 
 export const Route = createFileRoute("/admin")({ component: AdminPage });
 
 type Desk = Awaited<ReturnType<typeof adminOverview>>;
-type Tab = "desk" | "accounts" | "shops" | "listings" | "more";
+type Tab = "desk" | "accounts" | "shops" | "listings" | "orders" | "more";
+
+const PHOTOS = ["/media/quick.jpg", "/media/supplies.jpg", "/media/bath.jpg", "/media/floor.jpg", "/media/sofa.jpg", "/media/kitchen.jpg", "/media/food.jpg", "/media/fashion.jpg"];
+const ORDER_STEPS = ["placed", "accepted", "preparing", "ontheway", "done", "rejected", "cancelled"] as const;
 
 const blankShop = {
   id: 0,
@@ -40,11 +47,15 @@ const blankListing = {
   businessId: 0,
   title: "",
   blurb: "",
+  description: "",
   price: 500,
+  compareAt: 0,
   kind: "service" as "service" | "product",
   categorySlug: "cleaning",
   stock: 0,
   active: true,
+  featured: false,
+  image: PHOTOS[0],
 };
 
 export function AdminPage() {
@@ -59,6 +70,9 @@ export function AdminPage() {
   const [account, setAccount] = useState({ name: "", email: "", password: "", role: "customer" });
   const [shop, setShop] = useState(blankShop);
   const [listing, setListing] = useState(blankListing);
+  const [query, setQuery] = useState("");
+  const [resetFor, setResetFor] = useState("");
+  const [nextPassword, setNextPassword] = useState("");
 
   const load = () =>
     adminOverview()
@@ -78,9 +92,15 @@ export function AdminPage() {
     { id: "accounts", label: t.people },
     { id: "shops", label: t.businesses },
     { id: "listings", label: t.listings },
+    { id: "orders", label: t.orders },
     { id: "desk", label: t.overview },
     { id: "more", label: t.settings },
   ];
+  const q = query.trim().toLowerCase();
+  const people = data?.people.filter((p) => !q || `${p.name} ${p.email}`.toLowerCase().includes(q)) ?? [];
+  const shops = data?.businessesList.filter((b) => !q || `${b.name} ${b.city} ${b.area}`.toLowerCase().includes(q)) ?? [];
+  const listings = data?.listings.filter((s) => !q || s.title.toLowerCase().includes(q)) ?? [];
+  const orders = data?.orderRows.filter((o) => !q || `${o.customerName} ${o.businessName} ${o.summary} ${o.id}`.toLowerCase().includes(q)) ?? [];
 
   return (
     <Frame>
@@ -101,6 +121,7 @@ export function AdminPage() {
               </button>
             ))}
           </div>
+          <input className={inputClass} value={query} placeholder={t.search} onChange={(e) => setQuery(e.target.value)} />
           {!data ? <div className="h-24 animate-pulse rounded-sheet bg-chip" /> : (
             <>
               {tab === "accounts" ? (
@@ -134,7 +155,7 @@ export function AdminPage() {
                     <button className={btnClass}>{t.createAccount}</button>
                   </form>
                   <h2 className="font-extrabold">{t.people}</h2>
-                  {data.people.map((p) => (
+                  {people.map((p) => (
                     <div key={p.id} className="rounded-sheet bg-card p-3 text-sm">
                       <p className="font-bold">{p.name}</p>
                       <p className="text-muted">{p.email}</p>
@@ -142,7 +163,19 @@ export function AdminPage() {
                       <div className="mt-2 flex flex-wrap gap-2">
                         <button type="button" className="rounded-full bg-chip px-3 py-1 text-xs font-bold" onClick={() => void adminSetUser({ data: { target: p.id, suspended: !p.suspended } }).then(load)}>{p.suspended ? t.restore : t.suspend}</button>
                         <button type="button" className="rounded-full bg-chip px-3 py-1 text-xs font-bold" onClick={() => void adminSetUser({ data: { target: p.id, isAdmin: !p.isAdmin } }).then(load)}>{p.isAdmin ? t.removeAdmin : t.makeAdmin}</button>
+                        <button type="button" className="rounded-full bg-chip px-3 py-1 text-xs font-bold" onClick={() => { setResetFor(p.id); setNextPassword(""); }}>{t.resetPassword}</button>
                       </div>
+                      {resetFor === p.id ? (
+                        <form className="mt-2 flex gap-2" onSubmit={(e) => {
+                          e.preventDefault();
+                          void adminResetPassword({ data: { target: p.id, password: nextPassword } })
+                            .then(() => { setResetFor(""); setNote(t.passwordSet); })
+                            .catch((err) => setError(err instanceof Error ? err.message : t.failed));
+                        }}>
+                          <input className={inputClass} value={nextPassword} onChange={(e) => setNextPassword(e.target.value)} minLength={8} required />
+                          <button className="shrink-0 rounded-full bg-ink px-3 text-xs font-bold text-card">{t.save}</button>
+                        </form>
+                      ) : null}
                     </div>
                   ))}
                 </section>
@@ -192,7 +225,7 @@ export function AdminPage() {
                     </button>
                     <button className={btnClass}>{t.save}</button>
                   </form>
-                  {data.businessesList.map((b) => (
+                  {shops.map((b) => (
                     <div key={b.id} className="rounded-sheet bg-card p-3 text-sm">
                       <button type="button" className="text-left" onClick={() => setShop({
                         id: b.id, name: b.name, categorySlug: b.categorySlug, city: b.city, area: b.area, phone: b.phone, hours: b.hours, about: b.about, plan: b.plan, verified: b.verified, ownerUserId: b.ownerUserId,
@@ -232,7 +265,11 @@ export function AdminPage() {
                     </Field>
                     <Field label={t.title}><input className={inputClass} value={listing.title} onChange={(e) => setListing({ ...listing, title: e.target.value })} required /></Field>
                     <Field label={t.blurb}><input className={inputClass} value={listing.blurb} onChange={(e) => setListing({ ...listing, blurb: e.target.value })} /></Field>
-                    <Field label={t.price}><input inputMode="numeric" className={inputClass} value={listing.price} onChange={(e) => setListing({ ...listing, price: Number(e.target.value) })} /></Field>
+                    <Field label={t.details}><input className={inputClass} value={listing.description} onChange={(e) => setListing({ ...listing, description: e.target.value })} /></Field>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Field label={t.price}><input inputMode="numeric" className={inputClass} value={listing.price} onChange={(e) => setListing({ ...listing, price: Number(e.target.value) })} /></Field>
+                      <Field label={t.was}><input inputMode="numeric" className={inputClass} value={listing.compareAt} onChange={(e) => setListing({ ...listing, compareAt: Number(e.target.value) })} /></Field>
+                    </div>
                     <Field label={t.catalog}>
                       <select className={inputClass} value={listing.categorySlug} onChange={(e) => setListing({ ...listing, categorySlug: e.target.value })}>
                         {data.categories.map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
@@ -243,21 +280,57 @@ export function AdminPage() {
                       <button type="button" className={listing.kind === "product" ? "h-10 rounded-full bg-ink text-xs font-bold text-card" : "h-10 rounded-full bg-chip text-xs font-bold"} onClick={() => setListing({ ...listing, kind: "product" })}>{t.kindProduct}</button>
                     </div>
                     {listing.kind === "product" ? <Field label={t.stockCount}><input inputMode="numeric" className={inputClass} value={listing.stock} onChange={(e) => setListing({ ...listing, stock: Number(e.target.value) })} /></Field> : null}
+                    <div className="flex gap-2 overflow-x-auto">
+                      {PHOTOS.map((src) => (
+                        <button type="button" key={src} onClick={() => setListing({ ...listing, image: src })} className={listing.image === src ? "rounded-2xl ring-2 ring-primary" : "rounded-2xl"}>
+                          <img src={src} alt="" className="size-14 rounded-2xl object-cover" />
+                        </button>
+                      ))}
+                    </div>
+                    <button type="button" className={listing.featured ? "h-10 w-full rounded-full bg-primary text-xs font-bold text-primary-ink" : "h-10 w-full rounded-full bg-chip text-xs font-bold"} onClick={() => setListing({ ...listing, featured: !listing.featured })}>
+                      {t.featured}
+                    </button>
                     <button type="button" className={listing.active ? "h-10 w-full rounded-full bg-primary text-xs font-bold text-primary-ink" : "h-10 w-full rounded-full bg-chip text-xs font-bold"} onClick={() => setListing({ ...listing, active: !listing.active })}>
                       {listing.active ? t.published : t.hidden}
                     </button>
                     <button className={btnClass}>{t.save}</button>
                   </form>
-                  {data.listings.map((s) => (
-                    <button
-                      key={s.id}
-                      type="button"
-                      className="block w-full rounded-sheet bg-card p-3 text-left text-sm"
-                      onClick={() => setListing({ id: s.id, businessId: s.businessId, title: s.title, blurb: s.blurb, price: s.price, kind: s.kind, categorySlug: s.categorySlug, stock: s.stock, active: s.active })}
-                    >
-                      <span className="font-bold">{s.title}</span>
-                      <span className="mt-1 block text-muted">{money(s.price, lang)} · {s.active ? t.published : t.hidden}</span>
-                    </button>
+                  {listings.map((s) => (
+                    <div key={s.id} className="flex items-center gap-2 rounded-sheet bg-card p-3 text-sm">
+                      <button
+                        type="button"
+                        className="min-w-0 flex-1 text-left"
+                        onClick={() => setListing({
+                          id: s.id, businessId: s.businessId, title: s.title, blurb: s.blurb, description: s.description,
+                          price: s.price, compareAt: s.compareAt, kind: s.kind, categorySlug: s.categorySlug, stock: s.stock,
+                          active: s.active, featured: s.featured, image: s.image,
+                        })}
+                      >
+                        <span className="font-bold">{s.title}</span>
+                        <span className="mt-1 block text-muted">{money(s.price, lang)} · {s.active ? t.published : t.hidden}</span>
+                      </button>
+                      <button type="button" className="text-xs font-bold text-primary" onClick={() => void adminRemoveListing({ data: { id: s.id } }).then(() => { setNote(t.savedOk); void load(); }).catch((err) => setError(err instanceof Error ? err.message : t.failed))}>{t.remove}</button>
+                    </div>
+                  ))}
+                </section>
+              ) : null}
+
+              {tab === "orders" ? (
+                <section className="space-y-2">
+                  {!orders.length ? <p className="text-sm text-muted">{t.noOrders}</p> : orders.map((o) => (
+                    <div key={o.id} className="rounded-sheet bg-card p-3 text-sm">
+                      <p className="font-bold">#{o.id} · {o.businessName}</p>
+                      <p className="text-muted">{o.customerName} · {o.summary || t.items}</p>
+                      <p className="mt-1 font-semibold tabular-nums">{money(o.total, lang)} · {o.paymentStatus === "paid" ? t.paid : t.unpaid}</p>
+                      <div className="mt-2 grid grid-cols-2 gap-2">
+                        <select className={inputClass} value={o.status} onChange={(e) => void setOrderStatus({ data: { id: o.id, status: e.target.value } }).then(() => load()).catch((err) => setError(err instanceof Error ? err.message : t.failed))}>
+                          {ORDER_STEPS.map((step) => <option key={step} value={step}>{statusText(t, step)}</option>)}
+                        </select>
+                        <button type="button" className="h-11 rounded-full bg-chip text-xs font-bold" onClick={() => void adminSetPayment({ data: { id: o.id, paid: o.paymentStatus !== "paid" } }).then(load)}>
+                          {o.paymentStatus === "paid" ? t.unpaid : t.markPaid}
+                        </button>
+                      </div>
+                    </div>
                   ))}
                 </section>
               ) : null}

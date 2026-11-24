@@ -226,7 +226,6 @@ const en = {
   pickShop: "Shop",
   newRecord: "New",
   resetPassword: "New password",
-  remove: "Remove",
   markPaid: "Mark paid",
   paid: "Paid",
   unpaid: "Unpaid",
@@ -458,6 +457,11 @@ const am: { [K in keyof typeof en]: string } = {
   hidden: "የተደበቀ",
   pickShop: "ሱቅ",
   newRecord: "አዲስ",
+  resetPassword: "አዲስ የይለፍ ቃል",
+  markPaid: "የተከፈለ ምልክት",
+  paid: "ተከፍሏል",
+  unpaid: "አልተከፈለም",
+  passwordSet: "የይለፍ ቃል ታድሷል።",
 };
 
 export type Copy = typeof en;

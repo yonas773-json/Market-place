@@ -163,10 +163,34 @@ function mapService(r: ServiceRow): ServiceCard {
 }
 
 function clip(v: unknown, max: number) {
-  return String(v ?? "").trim().slice(0, max);
+  return String(v ?? "")
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "")
+    .trim()
+    .slice(0, max);
 }
 function like(q: string) {
   return `%${q.replace(/[%_\\]/g, "").slice(0, 60)}%`;
+}
+
+const WEAK_PASSWORDS = new Set(["password", "password1", "12345678", "qwertyui", "11111111", "admin123", "jsonconnect"]);
+
+function assertPassword(password: string, email: string) {
+  if (password.length < 8 || password.length > 72) throw new Error("Password needs 8 to 72 characters.");
+  if (password.toLowerCase() === email.toLowerCase()) throw new Error("Password cannot be the email.");
+  if (WEAK_PASSWORDS.has(password.toLowerCase())) throw new Error("Choose a less common password.");
+}
+
+const paceBook = new Map<string, number[]>();
+function pace(key: string, limit: number, windowMs: number) {
+  const now = Date.now();
+  const prev = (paceBook.get(key) ?? []).filter((t) => now - t < windowMs);
+  if (prev.length >= limit) throw new Error("Too many requests. Wait a moment.");
+  prev.push(now);
+  paceBook.set(key, prev);
+  if (paceBook.size > 5000) {
+    const oldest = paceBook.keys().next().value;
+    if (oldest) paceBook.delete(oldest);
+  }
 }
 
 async function db() {
@@ -422,12 +446,12 @@ export async function getMe(userId: string, intent: "customer" | "business") {
   let row = await profileRow(userId);
   if (!row) {
     const u = await sql<{ name: string }>`select name from "user" where id = ${userId}`;
-    const admins = await sql<{ n: number }>`select count(*)::int as n from profiles where is_admin = true`;
-    const isAdmin = n(admins[0]?.n) === 0;
     await sql`
       insert into profiles (user_id, display_name, is_admin, is_business)
-      values (${userId}, ${u[0]?.name || "Member"}, ${isAdmin}, ${intent === "business"})
+      values (${userId}, ${u[0]?.name || "Member"}, false, ${intent === "business"})
+      on conflict (user_id) do nothing
     `;
+    await grantFirstAdmin(userId);
     row = await profileRow(userId);
   }
   if (!row) throw new Error("Could not open your profile.");
@@ -450,6 +474,40 @@ export async function getMe(userId: string, intent: "customer" | "business") {
     notifications: notes.map((x) => ({ id: n(x.id), title: x.title, body: x.body, read: Boolean(x.read) })),
     unread: n(unread[0]?.n),
   };
+}
+
+async function grantFirstAdmin(userId: string) {
+  const sql = await db();
+  try {
+    await sql`select pg_advisory_lock(842110)`;
+  } catch {
+    /* embedded Postgres may lack the lock; the update below is still one statement */
+  }
+  try {
+    await sql`
+      update profiles set is_admin = true
+      where user_id = ${userId}
+        and not exists (select 1 from profiles where is_admin = true)
+    `;
+  } finally {
+    try {
+      await sql`select pg_advisory_unlock(842110)`;
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
+async function guardActive(userId: string) {
+  const me = await profileRow(userId);
+  if (!me) throw new Error("Could not open your profile.");
+  if (me.suspended) throw new Error("This account is suspended.");
+  return me;
+}
+
+async function endSessions(target: string) {
+  const sql = await db();
+  await sql`delete from session where "userId" = ${target}`;
 }
 
 async function myBusiness(userId: string) {

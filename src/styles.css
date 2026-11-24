@@ -1,47 +1,87 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Plus Jakarta Sans", "Avenir Next", "Segoe UI", sans-serif;
-  --color-canvas: #f3f0e8;
-  --color-card: #ffffff;
-  --color-ink: #1a1a1a;
-  --color-muted: #6f6a62;
-  --color-line: #e7e2d8;
-  --color-primary: #7c5cbf;
-  --color-primary-ink: #ffffff;
-  --color-chip: #efece6;
-  --color-mint: #d9f2c8;
-  --color-blush: #f8d5e4;
-  --color-peach: #fde3cf;
-  --color-lilac: #e4d8fb;
-  --color-sky: #d4ebfb;
-  --color-butter: #f6efc3;
-  --radius-sheet: 1.75rem;
+  --font-sans: "Source Sans 3", "Noto Sans Ethiopic", "Segoe UI", sans-serif;
+  --font-display: "Source Serif 4", "Noto Sans Ethiopic", Georgia, serif;
+  --color-canvas: #f7f3eb;
+  --color-card: #fffdf8;
+  --color-ink: #1c1915;
+  --color-muted: #6b645c;
+  --color-line: #e6dccb;
+  --color-primary: #1c1915;
+  --color-primary-ink: #f7f3eb;
+  --color-gold: #8d6b2f;
+  --color-chip: #f3eee4;
+  --color-mint: #f4f1ea;
+  --color-blush: #f7f1ee;
+  --color-peach: #f6f2ea;
+  --color-lilac: #f3f1f4;
+  --color-sky: #f1f3f2;
+  --color-butter: #f7f3e6;
+  --radius-sheet: 0.85rem;
 }
 
 @layer base {
   html { color-scheme: light; background: var(--color-canvas); }
   html.dark {
     color-scheme: dark;
-    --color-canvas: #12110e;
-    --color-card: #1c1a16;
-    --color-ink: #f6f3ec;
-    --color-muted: #b7b1a6;
-    --color-line: #2e2a24;
-    --color-primary: #c4b0f0;
-    --color-primary-ink: #1a1028;
-    --color-chip: #2a2722;
-    --color-mint: #243028;
-    --color-blush: #3a2430;
-    --color-peach: #3a2c22;
-    --color-lilac: #2c2640;
-    --color-sky: #1e2c38;
-    --color-butter: #33301c;
+    --color-canvas: #141210;
+    --color-card: #1e1a16;
+    --color-ink: #f6f1e6;
+    --color-muted: #c4b6a4;
+    --color-line: #3a3228;
+    --color-primary: #f3ead7;
+    --color-primary-ink: #1c1915;
+    --color-gold: #e2c27a;
+    --color-chip: #2a241e;
+    --color-mint: #24211c;
+    --color-blush: #2a221e;
+    --color-peach: #2a241c;
+    --color-lilac: #262228;
+    --color-sky: #1e2424;
+    --color-butter: #2a2618;
   }
-  body { font-family: var(--font-sans); }
+  body { font-family: var(--font-sans); font-size: 16px; }
   button:not(:disabled), [role="button"]:not(:disabled) { cursor: pointer; }
-  h1, h2, h3 { text-wrap: balance; }
+  h1, h2, h3 { font-family: var(--font-display); font-weight: 600; text-wrap: balance; letter-spacing: -0.015em; }
   p { text-wrap: pretty; }
+  html[lang="am"] body {
+    font-family: "Abyssinica SIL", "Noto Sans Ethiopic", "Source Sans 3", sans-serif;
+  }
+  html[lang="am"] h1,
+  html[lang="am"] h2,
+  html[lang="am"] h3,
+  html[lang="am"] .font-extrabold,
+  html[lang="am"] .font-display {
+    font-family: "Abyssinica SIL", "Noto Sans Ethiopic", "Source Serif 4", serif;
+    letter-spacing: 0;
+  }
+}
+
+.font-extrabold {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+a.rounded-full,
+button.rounded-full {
+  border-radius: 0.7rem;
+}
+
+/* One woven edge, like tibeb on a plain cloth. Not a background pattern. */
+.tibeb {
+  height: 7px;
+  flex: none;
+  background-color: var(--color-canvas);
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--color-ink) 0 2px,
+    transparent 2px 8px,
+    var(--color-gold) 8px 14px,
+    transparent 14px 22px
+  );
+  box-shadow: inset 0 1px 0 var(--color-ink), inset 0 -1px 0 var(--color-ink);
 }
 
 .no-scrollbar { scrollbar-width: none; }
